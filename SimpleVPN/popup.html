@@ -1,0 +1,52 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { width: 250px; padding: 15px; font-family: sans-serif; background: #f4f4f9; }
+    h2 { margin-top: 0; color: #333; text-align: center;}
+    .input-group { margin-bottom: 10px; }
+    label { display: block; font-size: 12px; color: #666; margin-bottom: 3px; }
+    input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+    button { width: 100%; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+    .btn-connect { background-color: #4CAF50; color: white; }
+    .btn-connect:hover { background-color: #45a049; }
+    .btn-disconnect { background-color: #f44336; color: white; display: none; }
+    .btn-disconnect:hover { background-color: #d32f2f; }
+    .status { text-align: center; font-size: 12px; margin-top: 10px; color: #888; }
+    .dot { height: 10px; width: 10px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .dot.active { background-color: #4CAF50; }
+  </style>
+</head>
+<body>
+  <h2>Server Config</h2>
+  
+  <div id="config-form">
+    <div class="input-group">
+      <label>Server IP</label>
+      <input type="text" id="host" placeholder="e.g. 1.2.3.4">
+    </div>
+    <div class="input-group">
+      <label>Port</label>
+      <input type="number" id="port" placeholder="9999" value="9999">
+    </div>
+    <div class="input-group">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="Optional" value="admin">
+    </div>
+    <div class="input-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Optional" value="123456">
+    </div>
+  </div>
+
+  <button id="connectBtn" class="btn-connect">CONNECT</button>
+  <button id="disconnectBtn" class="btn-disconnect">DISCONNECT</button>
+
+  <div class="status">
+    <span id="statusDot" class="dot"></span>
+    <span id="statusText">Disconnected</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
