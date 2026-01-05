@@ -1,0 +1,32 @@
+[Unit]
+Description=SOCKS5 Proxy Server
+Documentation=https://github.com/yourusername/Python-VPN
+After=network.target
+
+[Service]
+Type=simple
+User=socks5
+Group=socks5
+WorkingDirectory=/opt/simplevpn/server
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/usr/bin/python3 /opt/simplevpn/server/socks5_server.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=socks5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/simplevpn/server/logs
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
