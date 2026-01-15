@@ -3,6 +3,12 @@ let proxyConfig = {
   mode: "direct"
 };
 
+// Store credentials globally for auth use
+let globalCredentials = {
+  username: '',
+  password: ''
+};
+
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'UPDATE_PROXY') {

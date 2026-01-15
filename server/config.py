@@ -7,7 +7,7 @@ SOCKS5 Server Configuration
 # Server address (0.0.0.0 = listen on all interfaces)
 HOST = '0.0.0.0'
 
-# Server port
+# Server port (default: 9999)
 PORT = 9999
 
 # Authentication credentials

@@ -4,41 +4,87 @@ import select
 import struct
 import logging
 import time
+import sys
+import os
 from datetime import datetime
 
+# ================= 配置导入 =================
+try:
+    # 尝试从 config.py 导入配置
+    sys.path.insert(0, os.path.dirname(__file__))
+    from config import (
+        HOST, PORT, USERNAME, PASSWORD, 
+        SOCKET_TIMEOUT, MAX_CONNECTIONS,
+        LOG_FILE, LOG_LEVEL, BUFFER_SIZE, VERBOSE
+    )
+except ImportError:
+    # 如果 config.py 不存在，使用默认配置
+    HOST = '0.0.0.0'
+    PORT = 9999
+    USERNAME = "admin"
+    PASSWORD = "123456"
+    SOCKET_TIMEOUT = 30
+    MAX_CONNECTIONS = 100
+    LOG_FILE = 'logs/socks5_server.log'
+    LOG_LEVEL = 'INFO'
+    BUFFER_SIZE = 4096
+    VERBOSE = True
+
 # ================= 日志配置 =================
+# 确保日志目录存在
+log_dir = os.path.dirname(LOG_FILE)
+if log_dir and not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
     format='[%(asctime)s] [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     handlers=[
-        logging.FileHandler('socks5_server.log', encoding='utf-8'),
+        logging.FileHandler(LOG_FILE, encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-# ================= 配置区域 =================
-# 监听地址 (0.0.0.0 表示允许外网访问)
-HOST = '0.0.0.0'
-# 监听端口
-PORT = 9999
-# 认证配置 (建议修改此处密码)
-USERNAME = "admin"
-PASSWORD = "123456"
-# 连接超时 (秒)
-SOCKET_TIMEOUT = 30
-# 最大并发连接数
-MAX_CONNECTIONS = 100
-# ===========================================
-
 class Socks5Server:
-    def __init__(self, host, port):
+    def __init__(self, host, port, retry_count=5, retry_delay=3):
         self.host = host
         self.port = port
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
+        # 设置多个 socket 选项以支持快速重启
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.bind((self.host, self.port))
+        
+        # 在支持的系统上，也设置 SO_REUSEPORT
+        try:
+            self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        except (AttributeError, OSError):
+            pass  # SO_REUSEPORT 不可用
+        
+        # 设置 TCP 保活选项
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        
+        # 尝试绑定，支持重试机制和指数退避
+        for attempt in range(1, retry_count + 1):
+            try:
+                self.server.bind((self.host, self.port))
+                logger.info(f"Successfully bound to {self.host}:{self.port}")
+                break
+            except OSError as e:
+                if attempt < retry_count:
+                    wait_time = retry_delay * (2 ** (attempt - 1))  # 指数退避
+                    logger.warning(f"Bind failed (attempt {attempt}/{retry_count}): {e}")
+                    logger.info(f"Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Failed to bind after {retry_count} attempts")
+                    logger.error(f"Port {self.port} is still in use. Please try one of:")
+                    logger.error(f"  1. sudo fuser -k {self.port}/tcp")
+                    logger.error(f"  2. sudo pkill -9 -f socks5_server.py")
+                    logger.error(f"  3. Wait a few minutes for TIME_WAIT sockets to clear")
+                    raise
+        
         self.server.listen(100)
         self.active_connections = 0
         self.connection_lock = threading.Lock()
